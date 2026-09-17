@@ -1,0 +1,5 @@
+[
+  {"id":"customer-churn","task_type":"classification","keywords":["customer","churn","retention","subscription"],"recommended_features":["tenure","plan","support interactions","recent usage"],"model_notes":"Start with logistic regression and tree ensembles; assess false-negative cost."},
+  {"id":"delivery-delay","task_type":"classification","keywords":["delivery","delay","order","logistics"],"recommended_features":["distance","pickup time","route","carrier","weather"],"model_notes":"Use only information known before dispatch to avoid leakage."},
+  {"id":"property-price","task_type":"regression","keywords":["house","property","price","real estate"],"recommended_features":["area","rooms","location","property age"],"model_notes":"Use MAE unless unusually large valuation errors are especially costly."}
+]
