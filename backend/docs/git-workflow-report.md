@@ -13,6 +13,14 @@ For this phase, the repository did not have any commits yet, so the first commit
 ## Commands used and why
 
 ```bash
+git status --short --branch
+```
+
+Purpose: checked the current branch and pending changes before staging.
+
+Why: this confirmed that only `.gitignore`, `.vscode/`, and `backend/` were untracked. `.vscode/` was intentionally left out of the commit.
+
+```bash
 git init
 ```
 
@@ -62,6 +70,20 @@ Purpose: creates a permanent checkpoint for the completed backend phase.
 
 Why: this gives us a clean rollback/review point before starting the next phase.
 
+Executed result:
+
+```text
+26929de Add LangGraph orchestration and local RAG retrieval
+```
+
+```bash
+git switch -c develop
+```
+
+Purpose: created and switched to the `develop` branch after the first stable backend commit.
+
+Why: future feature branches should be created from `develop`, then merged back into `develop` before anything reaches `main`.
+
 ## Phase covered by this commit
 
 This commit covers the backend phase that introduced:
@@ -92,13 +114,7 @@ The warning is from Starlette/AnyIO deprecation behavior and does not currently 
 
 ## Next Git steps after this commit
 
-After the first stable commit exists, create the development branch:
-
-```bash
-git switch -c develop
-```
-
-Then each future phase should follow:
+For the next backend phase, follow:
 
 ```bash
 git switch develop
