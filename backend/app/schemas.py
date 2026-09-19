@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -71,6 +72,17 @@ class RunResponse(BaseModel):
     status: str
     result: dict | None = None
     error: str | None = None
+
+
+class RunPlanResponse(BaseModel):
+    task_type: TaskType
+    target_column: str
+    primary_metric: str
+    metric_direction: str
+    validation: str
+    candidates: list[dict[str, str]]
+    reproducibility: dict[str, Any]
+    dataset: dict[str, Any] | None = None
 
 
 class WorkflowStage(BaseModel):

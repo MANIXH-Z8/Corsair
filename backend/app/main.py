@@ -12,7 +12,8 @@ from . import db
 from .config import API_KEY, ARTIFACT_DIR, MAX_UPLOAD_BYTES, TEMPLATE_DIR, UPLOAD_DIR
 from .ml import profile_dataset, train
 from .orchestration import run_followup_discovery, run_initial_discovery, workflow_summary
-from .schemas import ApprovalRequest, CreateProjectRequest, DatasetResponse, MessageRequest, ProjectResponse, ProjectSpec, ProjectStatus, RunResponse, WorkflowEvent, WorkflowResponse
+from .planning import build_run_plan
+from .schemas import ApprovalRequest, CreateProjectRequest, DatasetResponse, MessageRequest, ProjectResponse, ProjectSpec, ProjectStatus, RunPlanResponse, RunResponse, WorkflowEvent, WorkflowResponse
 
 app = FastAPI(title="AutoBuild Backend", version="0.1.0")
 executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="automl")
@@ -135,6 +136,17 @@ def start_run(project_id: str):
     db.record_workflow_event(project_id, "run_queued", "Training run queued.")
     executor.submit(_execute_run, run_id, row["spec_json"], dataset["stored_path"])
     return RunResponse(id=run_id, project_id=project_id, status="queued")
+
+
+@app.get("/projects/{project_id}/run-plan", response_model=RunPlanResponse, dependencies=[Depends(require_api_key)])
+def get_run_plan(project_id: str):
+    row = project_or_404(project_id)
+    dataset = db.fetch_one("SELECT profile_json FROM datasets WHERE project_id = ? ORDER BY created_at DESC LIMIT 1", (project_id,))
+    try:
+        plan = build_run_plan(db.load(row["spec_json"]), db.load(dataset["profile_json"]) if dataset else None)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return RunPlanResponse(**plan)
 
 
 def _execute_run(run_id: str, spec_json: str, dataset_path: str):

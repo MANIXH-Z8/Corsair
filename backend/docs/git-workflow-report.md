@@ -164,3 +164,9 @@ Verification command:
 ```
 
 Result: `5 passed`. Two non-failing warnings remain: a Starlette/AnyIO deprecation warning and a joblib Windows CPU-detection warning.
+
+## Run-planning phase record
+
+Implemented on `codex/run-planning`. This phase adds the deterministic run-plan service and `GET /projects/{id}/run-plan`, documenting the candidate estimators, validation strategy, metric direction, and reproducibility settings before training begins.
+
+Verification remained `5 passed` with the same two non-failing warnings.

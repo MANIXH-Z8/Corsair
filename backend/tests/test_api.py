@@ -79,6 +79,11 @@ def test_workflow_requires_approval_then_exposes_frontend_state():
     assert awaiting_data["current_stage"] == "data_upload"
     assert awaiting_data["events"][0]["step"] == "spec_approved"
 
+    plan_before_data = client.get(f"/projects/{project_id}/run-plan", headers=HEADERS)
+    assert plan_before_data.status_code == 200
+    assert [candidate["name"] for candidate in plan_before_data.json()["candidates"]] == ["logistic_regression", "random_forest", "hist_gradient_boosting"]
+    assert plan_before_data.json()["metric_direction"] == "higher_is_better"
+
 
 def test_regression_workflow_and_report():
     project = client.post("/projects", headers=HEADERS, json={"name": "Property price", "problem_statement": "Predict house price with regression."}).json()
