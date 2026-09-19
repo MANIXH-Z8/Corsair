@@ -146,3 +146,21 @@ When `develop` is stable and ready for a release/demo:
 git switch main
 git merge --no-ff develop
 ```
+
+## Workflow-readiness phase record
+
+Implemented on `codex/workflow-readiness` and committed as:
+
+```text
+5660a82 Add guarded workflow lifecycle API
+```
+
+This phase adds a LangGraph lifecycle summary, explicit `awaiting_data` status, state-transition guards, persistent workflow events, the `GET /projects/{id}/workflow` endpoint, frontend handoff updates, and lifecycle tests.
+
+Verification command:
+
+```bash
+..\.venv\Scripts\python.exe -m pytest tests -p no:cacheprovider
+```
+
+Result: `5 passed`. Two non-failing warnings remain: a Starlette/AnyIO deprecation warning and a joblib Windows CPU-detection warning.
