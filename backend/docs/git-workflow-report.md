@@ -6,7 +6,7 @@ This project uses a simple production-minded flow:
 
 - `main` stores stable, tested code.
 - `develop` will be used as the integration branch after the initial backend state is committed.
-- `feature/*` branches should be used for each implementation phase, then merged into `develop`.
+- `codex/*` branches are used for each implementation phase in this Codex workspace, then merged into `develop`.
 
 For this phase, the repository did not have any commits yet, so the first commit records the backend state plus the LangGraph/RAG orchestration phase together.
 
@@ -114,11 +114,21 @@ The warning is from Starlette/AnyIO deprecation behavior and does not currently 
 
 ## Next Git steps after this commit
 
-For the next backend phase, follow:
+For this workflow-readiness phase, the following command was executed:
+
+```bash
+git switch -c codex/workflow-readiness
+```
+
+Purpose: created an isolated branch from `develop` before changing the lifecycle API.
+
+Why: this keeps the integration branch reviewable while the phase is developed and tested.
+
+For a later backend phase, follow:
 
 ```bash
 git switch develop
-git switch -c feature/<phase-name>
+git switch -c codex/<phase-name>
 ```
 
 After a feature is tested:
@@ -127,7 +137,7 @@ After a feature is tested:
 git add .
 git commit -m "<clear feature message>"
 git switch develop
-git merge --no-ff feature/<phase-name>
+git merge --no-ff codex/<phase-name>
 ```
 
 When `develop` is stable and ready for a release/demo:

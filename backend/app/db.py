@@ -45,6 +45,10 @@ def initialize() -> None:
               id TEXT PRIMARY KEY, project_id TEXT NOT NULL, dataset_id TEXT NOT NULL,
               status TEXT NOT NULL, result_json TEXT, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS workflow_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL,
+              step TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL
+            );
             """
         )
 
@@ -65,3 +69,11 @@ def fetch_one(query: str, params: tuple = ()):
 def fetch_all(query: str, params: tuple = ()):
     with connection() as conn:
         return conn.execute(query, params).fetchall()
+
+
+def record_workflow_event(project_id: str, step: str, detail: str) -> None:
+    with connection() as conn:
+        conn.execute(
+            "INSERT INTO workflow_events (project_id, step, detail, created_at) VALUES (?, ?, ?, ?)",
+            (project_id, step, detail, now()),
+        )

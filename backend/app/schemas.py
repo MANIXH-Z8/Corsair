@@ -12,6 +12,7 @@ class TaskType(str, Enum):
 class ProjectStatus(str, Enum):
     DISCOVERY = "discovery"
     AWAITING_APPROVAL = "awaiting_approval"
+    AWAITING_DATA = "awaiting_data"
     DATA_READY = "data_ready"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -70,3 +71,26 @@ class RunResponse(BaseModel):
     status: str
     result: dict | None = None
     error: str | None = None
+
+
+class WorkflowStage(BaseModel):
+    id: str
+    label: str
+    state: str
+    description: str
+
+
+class WorkflowEvent(BaseModel):
+    id: int
+    step: str
+    detail: str
+    created_at: str
+
+
+class WorkflowResponse(BaseModel):
+    project_id: str
+    status: ProjectStatus
+    current_stage: str
+    next_action: str
+    stages: list[WorkflowStage]
+    events: list[WorkflowEvent]

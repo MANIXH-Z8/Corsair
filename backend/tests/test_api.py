@@ -58,6 +58,28 @@ def test_langgraph_discovery_refines_project_spec():
     assert updated_project["spec"]["task_type"] == "classification"
 
 
+def test_workflow_requires_approval_then_exposes_frontend_state():
+    project = client.post(
+        "/projects",
+        headers=HEADERS,
+        json={"name": "Claims", "problem_statement": "Predict whether an insurance claim is fraudulent; target column is fraud."},
+    ).json()
+    project_id = project["id"]
+    workflow = client.get(f"/projects/{project_id}/workflow", headers=HEADERS)
+    assert workflow.status_code == 200
+    assert workflow.json()["current_stage"] == "approval"
+
+    frame = pd.DataFrame({"claim_value": [100, 200], "fraud": [0, 1]})
+    unapproved_upload = client.post(f"/projects/{project_id}/datasets", headers=HEADERS, files={"file": ("claims.csv", frame.to_csv(index=False).encode(), "text/csv")})
+    assert unapproved_upload.status_code == 409
+
+    approval = client.post(f"/projects/{project_id}/approve-spec", headers=HEADERS, json={"task_type": "classification", "target_column": "fraud"})
+    assert approval.json()["status"] == "awaiting_data"
+    awaiting_data = client.get(f"/projects/{project_id}/workflow", headers=HEADERS).json()
+    assert awaiting_data["current_stage"] == "data_upload"
+    assert awaiting_data["events"][0]["step"] == "spec_approved"
+
+
 def test_regression_workflow_and_report():
     project = client.post("/projects", headers=HEADERS, json={"name": "Property price", "problem_statement": "Predict house price with regression."}).json()
     project_id = project["id"]
