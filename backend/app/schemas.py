@@ -64,6 +64,7 @@ class DatasetResponse(BaseModel):
     profile: dict
     training_ready: bool
     blockers: list[str]
+    warnings: list[str] = []
 
 
 class RunResponse(BaseModel):

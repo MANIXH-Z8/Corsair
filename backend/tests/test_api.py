@@ -39,6 +39,20 @@ def test_rejects_unsupported_file():
     assert response.status_code == 415
 
 
+def test_data_profile_blocks_invalid_targets_and_explains_feature_quality():
+    project = client.post("/projects", headers=HEADERS, json={"name": "Refund", "problem_statement": "Predict refund amount using regression."}).json()
+    project_id = project["id"]
+    assert client.post(f"/projects/{project_id}/approve-spec", headers=HEADERS, json={"task_type": "regression", "target_column": "refund"}).status_code == 200
+    frame = pd.DataFrame({"empty_feature": [None] * 30, "same_value": [1] * 30, "refund": ["high"] * 30})
+    response = client.post(f"/projects/{project_id}/datasets", headers=HEADERS, files={"file": ("refunds.csv", frame.to_csv(index=False).encode(), "text/csv")})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["training_ready"] is False
+    assert any("regression target must be numeric" in blocker.lower() for blocker in data["blockers"])
+    assert any("non-empty feature column" in blocker.lower() for blocker in data["blockers"])
+    assert data["warnings"]
+
+
 def test_langgraph_discovery_refines_project_spec():
     response = client.post("/projects", headers=HEADERS, json={"name": "Delivery", "problem_statement": "I need to reduce delivery delay risk for orders."})
     assert response.status_code == 200

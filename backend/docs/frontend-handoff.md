@@ -6,6 +6,8 @@ After upload, show `profile`, `blockers`, and `training_ready`; link users to `G
 
 Before showing the run button, call `GET /projects/{id}/run-plan`. Render its candidates and reasons as the planned experiment, and use `metric_direction` to explain how the leaderboard is judged. The endpoint returns `409` until the user has supplied enough information to identify classification or regression.
 
+Render `DatasetResponse.warnings` separately from blockers: warnings inform the user about data quality but do not prevent a run; blockers keep the project in `blocked` and must be resolved. The profile's `quality` object identifies usable, empty, and constant feature columns.
+
 Use `GET /projects/{id}/workflow` to drive the stepper, current instruction (`next_action`), and activity timeline (`events`). The endpoint is authoritative: do not infer a screen from the client alone. A valid CSV/XLSX upload before the project reaches `awaiting_data` receives `409`; after approval, prevent edits to the discovery conversation and start a new project for a material scope change.
 
 Use `GET /projects/{id}/frontend-contract` for statuses and expected screens.

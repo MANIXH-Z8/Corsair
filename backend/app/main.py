@@ -106,7 +106,7 @@ def upload_dataset(project_id: str, file: UploadFile = File(...)):
         conn.execute("INSERT INTO datasets VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (dataset_id, project_id, file.filename, str(target_path), db.dump(profile), not blockers, db.dump(blockers), db.now()))
         conn.execute("UPDATE projects SET status = ? WHERE id = ?", (ProjectStatus.DATA_READY if not blockers else ProjectStatus.BLOCKED, project_id))
     db.record_workflow_event(project_id, "data_profiled", "Dataset is training-ready." if not blockers else "Dataset has blockers that must be resolved.")
-    return DatasetResponse(id=dataset_id, project_id=project_id, filename=file.filename or "upload", profile=profile, training_ready=not blockers, blockers=blockers)
+    return DatasetResponse(id=dataset_id, project_id=project_id, filename=file.filename or "upload", profile=profile, training_ready=not blockers, blockers=blockers, warnings=profile["warnings"])
 
 
 @app.get("/projects/{project_id}/data-template", dependencies=[Depends(require_api_key)])

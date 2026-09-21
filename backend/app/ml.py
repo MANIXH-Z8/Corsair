@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import joblib
@@ -9,8 +8,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression, Ridge
-from sklearn.metrics import f1_score, mean_absolute_error
-from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score, train_test_split
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
@@ -18,22 +16,51 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 def profile_dataset(path: Path, target: str | None, task_type: str | None) -> tuple[dict, list[str]]:
     frame = read_table(path)
     blockers: list[str] = []
+    warnings: list[str] = []
     if frame.empty:
         blockers.append("The file contains no rows.")
     if not target:
         blockers.append("Approve a project specification with a target column before training.")
     elif target not in frame.columns:
         blockers.append(f"Target column '{target}' is not present in the imported file.")
-    elif frame[target].dropna().nunique() < 2:
-        blockers.append("The target must contain at least two distinct non-empty values.")
+    elif task_type not in {"classification", "regression"}:
+        blockers.append("Approve whether this is a classification or regression project before training.")
+    else:
+        labeled_target = frame[target].dropna()
+        if labeled_target.nunique() < 2:
+            blockers.append("The target must contain at least two distinct non-empty values.")
+        if task_type == "classification" and not labeled_target.empty and labeled_target.value_counts().min() < 2:
+            blockers.append("Each target class needs at least two labeled rows for cross-validation.")
+        if task_type == "regression" and not pd.api.types.is_numeric_dtype(labeled_target):
+            blockers.append("A regression target must be numeric. Use classification for category labels.")
+        missing_target = int(frame[target].isna().sum())
+        if missing_target:
+            warnings.append(f"{missing_target} row(s) with a missing target will be excluded from training.")
     if len(frame) < 30:
         blockers.append("At least 30 rows are required for this MVP to evaluate models safely.")
+    feature_columns = [column for column in frame.columns if column != target]
+    empty_features = [column for column in feature_columns if frame[column].dropna().empty]
+    constant_features = [column for column in feature_columns if column not in empty_features and frame[column].dropna().nunique() <= 1]
+    usable_features = [column for column in feature_columns if column not in empty_features and column not in constant_features]
+    if not feature_columns:
+        blockers.append("Add at least one feature column in addition to the target column.")
+    elif not usable_features:
+        blockers.append("Add at least one non-empty feature column with more than one value.")
+    if empty_features:
+        warnings.append(f"{len(empty_features)} fully empty feature column(s) will not provide predictive signal: {', '.join(empty_features[:5])}.")
+    if constant_features:
+        warnings.append(f"{len(constant_features)} constant feature column(s) will not provide predictive signal: {', '.join(constant_features[:5])}.")
+    duplicate_rows = int(frame.duplicated().sum())
+    if duplicate_rows:
+        warnings.append(f"{duplicate_rows} duplicate row(s) were detected; review whether repeated records are expected.")
     profile = {
         "rows": len(frame), "columns": len(frame.columns), "column_names": frame.columns.tolist(),
         "dtypes": {column: str(dtype) for column, dtype in frame.dtypes.items()},
-        "missing_values": frame.isna().sum().to_dict(), "duplicate_rows": int(frame.duplicated().sum()),
+        "missing_values": frame.isna().sum().to_dict(), "duplicate_rows": duplicate_rows,
         "target": target, "task_type": task_type,
         "target_distribution": frame[target].value_counts(dropna=False).head(20).to_dict() if target in frame else {},
+        "quality": {"feature_columns": feature_columns, "usable_feature_columns": usable_features, "empty_feature_columns": empty_features, "constant_feature_columns": constant_features},
+        "warnings": warnings,
     }
     return profile, blockers
 

@@ -170,3 +170,9 @@ Result: `5 passed`. Two non-failing warnings remain: a Starlette/AnyIO deprecati
 Implemented on `codex/run-planning`. This phase adds the deterministic run-plan service and `GET /projects/{id}/run-plan`, documenting the candidate estimators, validation strategy, metric direction, and reproducibility settings before training begins.
 
 Verification remained `5 passed` with the same two non-failing warnings.
+
+## Data-readiness hardening phase record
+
+Implemented on `codex/data-readiness-hardening`. This phase expands upload profiling into a pre-flight gate that blocks invalid regression targets, insufficient class support, and unusable features. It also separates actionable warnings from run-blocking errors for the frontend.
+
+Verification result: `6 passed` with the same two non-failing environment warnings.
