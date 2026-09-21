@@ -31,6 +31,13 @@ def test_classification_workflow():
         time.sleep(0.1)
     assert result["status"] == "completed"
     assert result["result"]["best_model"]
+    assert result["artifact_available"] is True
+    history = client.get(f"/projects/{project_id}/runs", headers=HEADERS)
+    assert history.status_code == 200
+    assert history.json()[0]["id"] == run.json()["id"]
+    artifact = client.get(f"/runs/{run.json()['id']}/artifact", headers=HEADERS)
+    assert artifact.status_code == 200
+    assert artifact.headers["content-type"] == "application/octet-stream"
 
 
 def test_rejects_unsupported_file():

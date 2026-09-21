@@ -36,6 +36,16 @@ def project_response(row) -> ProjectResponse:
     return ProjectResponse(id=row["id"], name=row["name"], status=row["status"], problem_statement=row["problem_statement"], spec=ProjectSpec(**db.load(row["spec_json"])))
 
 
+def run_response(row) -> RunResponse:
+    result = db.load(row["result_json"])
+    artifact_name = Path(result.get("artifact", "")).name if result else ""
+    artifact_available = bool(artifact_name and (ARTIFACT_DIR / artifact_name).is_file())
+    return RunResponse(
+        id=row["id"], project_id=row["project_id"], status=row["status"], result=result, error=row["error"],
+        created_at=row["created_at"], updated_at=row["updated_at"], artifact_available=artifact_available,
+    )
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -173,7 +183,29 @@ def get_run(run_id: str):
     row = db.fetch_one("SELECT * FROM runs WHERE id = ?", (run_id,))
     if not row:
         raise HTTPException(status_code=404, detail="Run not found")
-    return RunResponse(id=row["id"], project_id=row["project_id"], status=row["status"], result=db.load(row["result_json"]), error=row["error"])
+    return run_response(row)
+
+
+@app.get("/projects/{project_id}/runs", response_model=list[RunResponse], dependencies=[Depends(require_api_key)])
+def list_project_runs(project_id: str):
+    project_or_404(project_id)
+    rows = db.fetch_all("SELECT * FROM runs WHERE project_id = ? ORDER BY created_at DESC", (project_id,))
+    return [run_response(row) for row in rows]
+
+
+@app.get("/runs/{run_id}/artifact", dependencies=[Depends(require_api_key)])
+def download_artifact(run_id: str):
+    row = db.fetch_one("SELECT * FROM runs WHERE id = ?", (run_id,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if row["status"] != "completed":
+        raise HTTPException(status_code=409, detail="A completed training run is required before the model artifact is available")
+    result = db.load(row["result_json"], {})
+    artifact_name = Path(result.get("artifact", "")).name
+    artifact_path = ARTIFACT_DIR / artifact_name
+    if not artifact_name or not artifact_path.is_file():
+        raise HTTPException(status_code=404, detail="Model artifact is unavailable")
+    return FileResponse(artifact_path, media_type="application/octet-stream", filename=f"{run_id}-model.joblib")
 
 
 @app.get("/projects/{project_id}/report", dependencies=[Depends(require_api_key)])
@@ -185,7 +217,7 @@ def get_report(project_id: str):
     dataset = db.fetch_one("SELECT * FROM datasets WHERE id = ?", (run["dataset_id"],))
     return {
         "project": project_response(project), "dataset_profile": db.load(dataset["profile_json"]),
-        "run": RunResponse(id=run["id"], project_id=run["project_id"], status=run["status"], result=db.load(run["result_json"]), error=run["error"]),
+        "run": run_response(run),
         "limitations": ["Scores are cross-validation estimates, not a guarantee of production performance.", "The model is not deployed by this MVP."],
     }
 

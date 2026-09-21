@@ -176,3 +176,9 @@ Verification remained `5 passed` with the same two non-failing warnings.
 Implemented on `codex/data-readiness-hardening`. This phase expands upload profiling into a pre-flight gate that blocks invalid regression targets, insufficient class support, and unusable features. It also separates actionable warnings from run-blocking errors for the frontend.
 
 Verification result: `6 passed` with the same two non-failing environment warnings.
+
+## Model-artifact phase record
+
+Implemented on `codex/model-artifacts`. This phase adds authenticated completed-model download, safe server-side artifact resolution, and a project run-history endpoint for the results screen.
+
+Verification result: `6 passed` with the same two non-failing environment warnings.

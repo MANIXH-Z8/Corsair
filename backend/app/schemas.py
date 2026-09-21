@@ -73,6 +73,9 @@ class RunResponse(BaseModel):
     status: str
     result: dict | None = None
     error: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    artifact_available: bool = False
 
 
 class RunPlanResponse(BaseModel):
