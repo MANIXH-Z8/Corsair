@@ -191,6 +191,18 @@ Verification result: `7 passed` with the same two non-failing environment warnin
 
 For the complete product, API, architecture, verification, Git, frontend, and production-readiness record, see `backend/docs/project-status-report.md`.
 
+## GitHub publication record
+
+On 2026-09-22, the public repository `https://github.com/MANIXH-Z8/Corsair` was created and configured as `origin`:
+
+```bash
+gh repo create Corsair --public
+git remote add origin https://github.com/MANIXH-Z8/Corsair.git
+git push --all origin
+```
+
+All local branches were published: `main`, `develop`, and the `codex/*` implementation branches. No tags existed to push.
+
 ## Durable job execution and observability phase record
 
 Implemented on `codex/durable-job-observability`. This phase adds durable run events, atomic run-state/event commits, database-guarded single active runs, structured retryable failure messages, and startup reconciliation for jobs interrupted by the local server process.

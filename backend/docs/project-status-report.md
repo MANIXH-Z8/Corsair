@@ -228,7 +228,7 @@ Latest result: **7 passed**. The only known non-failing warnings are from Starle
 
 ## 11. Git history and completed phases
 
-The repository has been initialized locally. No remote is configured and **nothing has been pushed to GitHub**.
+The repository is published publicly at [MANIXH-Z8/Corsair](https://github.com/MANIXH-Z8/Corsair). The `origin` remote uses `https://github.com/MANIXH-Z8/Corsair.git`, and every branch listed below was pushed on 2026-09-22.
 
 | Commit | Branch/milestone | What it added |
 |---|---|---|
@@ -243,7 +243,7 @@ The repository has been initialized locally. No remote is configured and **nothi
 | `2b9c70a` | explainability | Model card and exploratory feature impact |
 | `c780752` | durable jobs | Atomic run events, duplicate-run guard, restart reconciliation |
 
-Current local branches are `main`, `develop`, and the stacked `codex/*` implementation branches. The current branch contains all completed work, but it has not yet been merged into `develop` or `main`.
+Current branches are `main`, `develop`, and the stacked `codex/*` implementation branches. The current branch contains all completed work, but it has not yet been merged into `develop` or `main`.
 
 The separate command-level record is `backend/docs/git-workflow-report.md`.
 
