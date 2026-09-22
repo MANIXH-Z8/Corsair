@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -12,6 +13,7 @@ class TaskType(str, Enum):
 class ProjectStatus(str, Enum):
     DISCOVERY = "discovery"
     AWAITING_APPROVAL = "awaiting_approval"
+    AWAITING_DATA = "awaiting_data"
     DATA_READY = "data_ready"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -62,6 +64,7 @@ class DatasetResponse(BaseModel):
     profile: dict
     training_ready: bool
     blockers: list[str]
+    warnings: list[str] = []
 
 
 class RunResponse(BaseModel):
@@ -70,3 +73,59 @@ class RunResponse(BaseModel):
     status: str
     result: dict | None = None
     error: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    artifact_available: bool = False
+
+
+class RunEvent(BaseModel):
+    id: int
+    run_id: str
+    status: str
+    detail: str
+    created_at: str
+
+
+class RunPlanResponse(BaseModel):
+    task_type: TaskType
+    target_column: str
+    primary_metric: str
+    metric_direction: str
+    validation: str
+    candidates: list[dict[str, str]]
+    reproducibility: dict[str, Any]
+    dataset: dict[str, Any] | None = None
+
+
+class PredictionRequest(BaseModel):
+    records: list[dict[str, Any]] = Field(min_length=1, max_length=500)
+
+
+class PredictionResponse(BaseModel):
+    run_id: str
+    model: str
+    predictions: list[Any]
+    probabilities: list[dict[str, float]] | None = None
+
+
+class WorkflowStage(BaseModel):
+    id: str
+    label: str
+    state: str
+    description: str
+
+
+class WorkflowEvent(BaseModel):
+    id: int
+    step: str
+    detail: str
+    created_at: str
+
+
+class WorkflowResponse(BaseModel):
+    project_id: str
+    status: ProjectStatus
+    current_stage: str
+    next_action: str
+    stages: list[WorkflowStage]
+    events: list[WorkflowEvent]
