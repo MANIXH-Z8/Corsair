@@ -261,6 +261,7 @@ def get_report(project_id: str):
     return {
         "project": project_response(project), "dataset_profile": db.load(dataset["profile_json"]),
         "run": run_response(run),
+        "model_card": db.load(run["result_json"], {}).get("model_card"),
         "limitations": ["Scores are cross-validation estimates, not a guarantee of production performance.", "The model is not deployed by this MVP."],
     }
 

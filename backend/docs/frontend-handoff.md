@@ -14,6 +14,8 @@ For the MVP's real-time prediction screen, post up to 500 records to `POST /runs
 
 For browser integration, configure the frontend origin in `AUTOBUILD_CORS_ORIGINS` (a comma-separated allow-list). The local defaults permit `http://localhost:3000` and `http://localhost:5173`. Send `X-API-Key` on every protected request. Use `/health` for liveness and `/ready` before declaring the API usable.
 
+Render `report.model_card` as an explainability section: validation method, data summary, limitations, and `feature_impact.top_features`. Display the feature-impact scope statement verbatim or equivalently; it is exploratory and must not be presented as a causal explanation.
+
 Use `GET /projects/{id}/workflow` to drive the stepper, current instruction (`next_action`), and activity timeline (`events`). The endpoint is authoritative: do not infer a screen from the client alone. A valid CSV/XLSX upload before the project reaches `awaiting_data` receives `409`; after approval, prevent edits to the discovery conversation and start a new project for a material scope change.
 
 Use `GET /projects/{id}/frontend-contract` for statuses and expected screens.

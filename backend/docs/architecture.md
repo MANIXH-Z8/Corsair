@@ -16,6 +16,8 @@ The same guarded artifact lookup powers batch inference. The prediction endpoint
 
 Runtime configuration is environment-based. CORS uses an explicit origin allow-list, the API key must be overridden in production, `/health` exposes liveness metadata, and `/ready` verifies SQLite access plus required storage directories. See `backend/.env.example` for the supported variables.
 
+Every completed run stores a compact model card alongside its leaderboard. It records validation settings, data summary, limitations, and permutation-based feature impact. The API labels this impact exploratory because it is measured on training data and must not be interpreted as causal evidence.
+
 Workflow: `discovery → approval → awaiting_data → upload/profile → data_ready → queued/running → completed|failed`. The LangGraph lifecycle graph turns persisted project state into a current stage, next action, and frontend stage list. The API records immutable workflow events in SQLite, giving the future frontend an auditable user-facing timeline. Every candidate uses a scikit-learn pipeline, ensuring imputation, encoding, and scaling are fit within cross-validation folds.
 
 Before external hosting, replace SQLite and the local executor with PostgreSQL plus isolated queue workers, then add compute controls, scanning, object storage, retention jobs, real identities, and observability.

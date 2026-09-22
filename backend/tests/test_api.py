@@ -31,6 +31,7 @@ def test_classification_workflow():
         time.sleep(0.1)
     assert result["status"] == "completed"
     assert result["result"]["best_model"]
+    assert result["result"]["model_card"]["feature_impact"]["method"] == "permutation_importance_on_training_data"
     assert result["artifact_available"] is True
     history = client.get(f"/projects/{project_id}/runs", headers=HEADERS)
     assert history.status_code == 200
@@ -137,3 +138,4 @@ def test_regression_workflow_and_report():
     report = client.get(f"/projects/{project_id}/report", headers=HEADERS)
     assert report.status_code == 200
     assert report.json()["run"]["result"]["primary_metric"] == "mae"
+    assert report.json()["model_card"]["validation"]["method"] == "cross_validation"

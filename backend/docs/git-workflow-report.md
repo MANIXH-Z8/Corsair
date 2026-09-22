@@ -183,6 +183,12 @@ Implemented on `codex/api-operational-config`. This phase adds explicit browser-
 
 Verification result: `7 passed` with the same two non-failing environment warnings. The asynchronous-run polling in tests was increased from five to ten seconds to remove an observed Windows timing flake.
 
+## Model report and explainability phase record
+
+Implemented on `codex/model-report-explainability`. This phase persists a model card with validation settings, data summary, documented limitations, and permutation-based feature impact. The impact is explicitly labelled exploratory rather than causal.
+
+Verification result: `7 passed` with the same two non-failing environment warnings.
+
 ## Model-inference phase record
 
 Implemented on `codex/model-inference`. This phase adds guarded batch inference for completed models. It validates requested columns against the recorded training features and returns class probabilities when the fitted classifier supports them.
