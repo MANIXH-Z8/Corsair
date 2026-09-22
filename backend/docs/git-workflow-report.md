@@ -189,6 +189,8 @@ Implemented on `codex/model-report-explainability`. This phase persists a model 
 
 Verification result: `7 passed` with the same two non-failing environment warnings.
 
+For the complete product, API, architecture, verification, Git, frontend, and production-readiness record, see `backend/docs/project-status-report.md`.
+
 ## Durable job execution and observability phase record
 
 Implemented on `codex/durable-job-observability`. This phase adds durable run events, atomic run-state/event commits, database-guarded single active runs, structured retryable failure messages, and startup reconciliation for jobs interrupted by the local server process.
