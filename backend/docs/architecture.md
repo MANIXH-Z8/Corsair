@@ -18,6 +18,8 @@ Runtime configuration is environment-based. CORS uses an explicit origin allow-l
 
 Every completed run stores a compact model card alongside its leaderboard. It records validation settings, data summary, limitations, and permutation-based feature impact. The API labels this impact exploratory because it is measured on training data and must not be interpreted as causal evidence.
 
+Runs persist a lifecycle event for queueing, start, completion, or failure. The run-start transition is conditional at the database level to prevent duplicate active runs. Because this MVP uses an in-process executor, startup reconciliation marks any interrupted queued/running job as failed with a retryable explanation; a production deployment should replace the executor with durable queue workers.
+
 Workflow: `discovery → approval → awaiting_data → upload/profile → data_ready → queued/running → completed|failed`. The LangGraph lifecycle graph turns persisted project state into a current stage, next action, and frontend stage list. The API records immutable workflow events in SQLite, giving the future frontend an auditable user-facing timeline. Every candidate uses a scikit-learn pipeline, ensuring imputation, encoding, and scaling are fit within cross-validation folds.
 
 Before external hosting, replace SQLite and the local executor with PostgreSQL plus isolated queue workers, then add compute controls, scanning, object storage, retention jobs, real identities, and observability.

@@ -16,6 +16,8 @@ For browser integration, configure the frontend origin in `AUTOBUILD_CORS_ORIGIN
 
 Render `report.model_card` as an explainability section: validation method, data summary, limitations, and `feature_impact.top_features`. Display the feature-impact scope statement verbatim or equivalently; it is exploratory and must not be presented as a causal explanation.
 
+While polling a run, also use `GET /runs/{run_id}/events` to render a durable execution timeline. Event status proceeds through `queued`, `running`, then `completed` or `failed`. A server restart marks an in-progress local run as failed; offer the user a clear retry action rather than indefinite loading.
+
 Use `GET /projects/{id}/workflow` to drive the stepper, current instruction (`next_action`), and activity timeline (`events`). The endpoint is authoritative: do not infer a screen from the client alone. A valid CSV/XLSX upload before the project reaches `awaiting_data` receives `409`; after approval, prevent edits to the discovery conversation and start a new project for a material scope change.
 
 Use `GET /projects/{id}/frontend-contract` for statuses and expected screens.

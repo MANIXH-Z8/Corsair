@@ -15,7 +15,7 @@ from .inference import predict_records
 from .ml import profile_dataset, train
 from .orchestration import run_followup_discovery, run_initial_discovery, workflow_summary
 from .planning import build_run_plan
-from .schemas import ApprovalRequest, CreateProjectRequest, DatasetResponse, MessageRequest, PredictionRequest, PredictionResponse, ProjectResponse, ProjectSpec, ProjectStatus, RunPlanResponse, RunResponse, WorkflowEvent, WorkflowResponse
+from .schemas import ApprovalRequest, CreateProjectRequest, DatasetResponse, MessageRequest, PredictionRequest, PredictionResponse, ProjectResponse, ProjectSpec, ProjectStatus, RunEvent, RunPlanResponse, RunResponse, WorkflowEvent, WorkflowResponse
 
 app = FastAPI(title="AutoBuild Backend", version="0.2.0")
 app.add_middleware(
@@ -27,6 +27,7 @@ app.add_middleware(
 )
 executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="automl")
 db.initialize()
+db.reconcile_incomplete_runs()
 
 
 def require_api_key(request: Request):
@@ -162,14 +163,18 @@ def start_run(project_id: str):
     dataset = db.fetch_one("SELECT * FROM datasets WHERE project_id = ? ORDER BY created_at DESC LIMIT 1", (project_id,))
     if not dataset:
         raise HTTPException(status_code=409, detail="Upload a dataset before starting a run")
-    if row["status"] != ProjectStatus.DATA_READY.value:
-        raise HTTPException(status_code=409, detail="Resolve data blockers before starting a run")
     if not dataset["training_ready"]:
         raise HTTPException(status_code=409, detail="Dataset is not ready for training")
     run_id = str(uuid.uuid4())
     with db.connection() as conn:
+        transitioned = conn.execute(
+            "UPDATE projects SET status = ? WHERE id = ? AND status = ?",
+            (ProjectStatus.RUNNING, project_id, ProjectStatus.DATA_READY),
+        ).rowcount
+        if not transitioned:
+            raise HTTPException(status_code=409, detail="Resolve data blockers or wait for the active run before starting another run")
         conn.execute("INSERT INTO runs VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (run_id, project_id, dataset["id"], "queued", None, None, db.now(), db.now()))
-        conn.execute("UPDATE projects SET status = ? WHERE id = ?", (ProjectStatus.RUNNING, project_id))
+        conn.execute("INSERT INTO run_events (run_id, status, detail, created_at) VALUES (?, ?, ?, ?)", (run_id, "queued", "Training run accepted by the local executor.", db.now()))
     db.record_workflow_event(project_id, "run_queued", "Training run queued.")
     executor.submit(_execute_run, run_id, row["spec_json"], dataset["stored_path"])
     return RunResponse(id=run_id, project_id=project_id, status="queued")
@@ -190,18 +195,22 @@ def _execute_run(run_id: str, spec_json: str, dataset_path: str):
     spec = db.load(spec_json)
     with db.connection() as conn:
         conn.execute("UPDATE runs SET status = ?, updated_at = ? WHERE id = ?", ("running", db.now(), run_id))
+        conn.execute("INSERT INTO run_events (run_id, status, detail, created_at) VALUES (?, ?, ?, ?)", (run_id, "running", "Training and cross-validation started.", db.now()))
     try:
         result = train(Path(dataset_path), spec["target_column"], spec["task_type"], spec["primary_metric"], ARTIFACT_DIR / f"{run_id}.joblib")
         with db.connection() as conn:
             conn.execute("UPDATE runs SET status = ?, result_json = ?, updated_at = ? WHERE id = ?", ("completed", db.dump(result), db.now(), run_id))
             conn.execute("UPDATE projects SET status = ? WHERE id = (SELECT project_id FROM runs WHERE id = ?)", (ProjectStatus.COMPLETED, run_id))
             project_id = conn.execute("SELECT project_id FROM runs WHERE id = ?", (run_id,)).fetchone()["project_id"]
+            conn.execute("INSERT INTO run_events (run_id, status, detail, created_at) VALUES (?, ?, ?, ?)", (run_id, "completed", "Training completed and the model artifact was saved.", db.now()))
         db.record_workflow_event(project_id, "run_completed", "Training completed and the leaderboard is available.")
     except Exception as exc:
+        error = f"Training failed during {type(exc).__name__}; correct the dataset or start a new run."
         with db.connection() as conn:
-            conn.execute("UPDATE runs SET status = ?, error = ?, updated_at = ? WHERE id = ?", ("failed", "Training failed; inspect server logs for details.", db.now(), run_id))
+            conn.execute("UPDATE runs SET status = ?, error = ?, updated_at = ? WHERE id = ?", ("failed", error, db.now(), run_id))
             conn.execute("UPDATE projects SET status = ? WHERE id = (SELECT project_id FROM runs WHERE id = ?)", (ProjectStatus.FAILED, run_id))
             project_id = conn.execute("SELECT project_id FROM runs WHERE id = ?", (run_id,)).fetchone()["project_id"]
+            conn.execute("INSERT INTO run_events (run_id, status, detail, created_at) VALUES (?, ?, ?, ?)", (run_id, "failed", error, db.now()))
         db.record_workflow_event(project_id, "run_failed", "Training failed; inspect server logs before retrying.")
 
 
@@ -211,6 +220,15 @@ def get_run(run_id: str):
     if not row:
         raise HTTPException(status_code=404, detail="Run not found")
     return run_response(row)
+
+
+@app.get("/runs/{run_id}/events", response_model=list[RunEvent], dependencies=[Depends(require_api_key)])
+def get_run_events(run_id: str):
+    row = db.fetch_one("SELECT id FROM runs WHERE id = ?", (run_id,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Run not found")
+    events = db.fetch_all("SELECT id, run_id, status, detail, created_at FROM run_events WHERE run_id = ? ORDER BY id ASC", (run_id,))
+    return [RunEvent(**dict(event)) for event in events]
 
 
 @app.get("/projects/{project_id}/runs", response_model=list[RunResponse], dependencies=[Depends(require_api_key)])

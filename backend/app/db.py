@@ -49,6 +49,10 @@ def initialize() -> None:
               id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL,
               step TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS run_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL,
+              status TEXT NOT NULL, detail TEXT NOT NULL, created_at TEXT NOT NULL
+            );
             """
         )
 
@@ -77,3 +81,26 @@ def record_workflow_event(project_id: str, step: str, detail: str) -> None:
             "INSERT INTO workflow_events (project_id, step, detail, created_at) VALUES (?, ?, ?, ?)",
             (project_id, step, detail, now()),
         )
+
+
+def reconcile_incomplete_runs() -> int:
+    """Mark local-executor jobs left incomplete by a prior server process as failed."""
+    with connection() as conn:
+        rows = conn.execute("SELECT id, project_id FROM runs WHERE status IN ('queued', 'running')").fetchall()
+        if not rows:
+            return 0
+        timestamp = now()
+        run_ids = [row["id"] for row in rows]
+        conn.executemany(
+            "UPDATE runs SET status = ?, error = ?, updated_at = ? WHERE id = ?",
+            [("failed", "Training was interrupted by a server restart. Start a new run to retry.", timestamp, run_id) for run_id in run_ids],
+        )
+        conn.executemany(
+            "INSERT INTO run_events (run_id, status, detail, created_at) VALUES (?, ?, ?, ?)",
+            [(run_id, "failed", "Training was interrupted by a server restart.", timestamp) for run_id in run_ids],
+        )
+        conn.executemany(
+            "UPDATE projects SET status = ? WHERE id = ? AND status = ?",
+            [("failed", row["project_id"], "running") for row in rows],
+        )
+        return len(rows)

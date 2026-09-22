@@ -189,6 +189,12 @@ Implemented on `codex/model-report-explainability`. This phase persists a model 
 
 Verification result: `7 passed` with the same two non-failing environment warnings.
 
+## Durable job execution and observability phase record
+
+Implemented on `codex/durable-job-observability`. This phase adds durable run events, atomic run-state/event commits, database-guarded single active runs, structured retryable failure messages, and startup reconciliation for jobs interrupted by the local server process.
+
+Verification result: `7 passed` with the same two non-failing environment warnings.
+
 ## Model-inference phase record
 
 Implemented on `codex/model-inference`. This phase adds guarded batch inference for completed models. It validates requested columns against the recorded training features and returns class probabilities when the fitted classifier supports them.

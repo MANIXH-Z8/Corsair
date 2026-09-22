@@ -78,6 +78,14 @@ class RunResponse(BaseModel):
     artifact_available: bool = False
 
 
+class RunEvent(BaseModel):
+    id: int
+    run_id: str
+    status: str
+    detail: str
+    created_at: str
+
+
 class RunPlanResponse(BaseModel):
     task_type: TaskType
     target_column: str

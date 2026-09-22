@@ -33,6 +33,9 @@ def test_classification_workflow():
     assert result["result"]["best_model"]
     assert result["result"]["model_card"]["feature_impact"]["method"] == "permutation_importance_on_training_data"
     assert result["artifact_available"] is True
+    events = client.get(f"/runs/{run.json()['id']}/events", headers=HEADERS)
+    assert events.status_code == 200
+    assert [event["status"] for event in events.json()] == ["queued", "running", "completed"]
     history = client.get(f"/projects/{project_id}/runs", headers=HEADERS)
     assert history.status_code == 200
     assert history.json()[0]["id"] == run.json()["id"]
