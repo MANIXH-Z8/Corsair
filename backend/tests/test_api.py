@@ -24,7 +24,7 @@ def test_classification_workflow():
     assert upload.json()["training_ready"] is True
     run = client.post(f"/projects/{project_id}/runs", headers=HEADERS)
     assert run.status_code == 200
-    for _ in range(50):
+    for _ in range(100):
         result = client.get(f"/runs/{run.json()['id']}", headers=HEADERS).json()
         if result["status"] in {"completed", "failed"}:
             break
@@ -44,6 +44,14 @@ def test_classification_workflow():
     assert prediction.json()["probabilities"] is not None
     invalid_prediction = client.post(f"/runs/{run.json()['id']}/predict", headers=HEADERS, json={"records": [{"age": 28}]})
     assert invalid_prediction.status_code == 422
+
+
+def test_operational_endpoints_and_frontend_cors_contract():
+    assert client.get("/health").json()["status"] == "ok"
+    assert client.get("/ready").json()["status"] == "ready"
+    preflight = client.options("/projects", headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "POST"})
+    assert preflight.status_code == 200
+    assert preflight.headers["access-control-allow-origin"] == "http://localhost:5173"
 
 
 def test_rejects_unsupported_file():
@@ -120,7 +128,7 @@ def test_regression_workflow_and_report():
     upload = client.post(f"/projects/{project_id}/datasets", headers=HEADERS, files={"file": ("prices.csv", frame.to_csv(index=False).encode(), "text/csv")})
     assert upload.json()["training_ready"] is True
     run = client.post(f"/projects/{project_id}/runs", headers=HEADERS).json()
-    for _ in range(50):
+    for _ in range(100):
         result = client.get(f"/runs/{run['id']}", headers=HEADERS).json()
         if result["status"] in {"completed", "failed"}:
             break

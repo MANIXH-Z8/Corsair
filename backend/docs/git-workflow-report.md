@@ -177,6 +177,12 @@ Implemented on `codex/data-readiness-hardening`. This phase expands upload profi
 
 Verification result: `6 passed` with the same two non-failing environment warnings.
 
+## API operational configuration phase record
+
+Implemented on `codex/api-operational-config`. This phase adds explicit browser-origin allow-list configuration, production API-key safeguards, `/health` and `/ready` operational endpoints, a reference environment template, and frontend integration guidance.
+
+Verification result: `7 passed` with the same two non-failing environment warnings. The asynchronous-run polling in tests was increased from five to ten seconds to remove an observed Windows timing flake.
+
 ## Model-inference phase record
 
 Implemented on `codex/model-inference`. This phase adds guarded batch inference for completed models. It validates requested columns against the recorded training features and returns class probabilities when the fitted classifier supports them.

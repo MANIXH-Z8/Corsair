@@ -12,6 +12,8 @@ Use `GET /projects/{id}/runs` for run history. Each run exposes `artifact_availa
 
 For the MVP's real-time prediction screen, post up to 500 records to `POST /runs/{run_id}/predict` as `{ "records": [{...}] }`. Include every value from `run.result.features_used`; missing required columns return `422`. Classification returns probability maps keyed by class label when supported by the selected model.
 
+For browser integration, configure the frontend origin in `AUTOBUILD_CORS_ORIGINS` (a comma-separated allow-list). The local defaults permit `http://localhost:3000` and `http://localhost:5173`. Send `X-API-Key` on every protected request. Use `/health` for liveness and `/ready` before declaring the API usable.
+
 Use `GET /projects/{id}/workflow` to drive the stepper, current instruction (`next_action`), and activity timeline (`events`). The endpoint is authoritative: do not infer a screen from the client alone. A valid CSV/XLSX upload before the project reaches `awaiting_data` receives `409`; after approval, prevent edits to the discovery conversation and start a new project for a material scope change.
 
 Use `GET /projects/{id}/frontend-contract` for statuses and expected screens.
