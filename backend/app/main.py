@@ -10,10 +10,11 @@ from fastapi.responses import FileResponse
 
 from . import db
 from .config import API_KEY, ARTIFACT_DIR, MAX_UPLOAD_BYTES, TEMPLATE_DIR, UPLOAD_DIR
+from .inference import predict_records
 from .ml import profile_dataset, train
 from .orchestration import run_followup_discovery, run_initial_discovery, workflow_summary
 from .planning import build_run_plan
-from .schemas import ApprovalRequest, CreateProjectRequest, DatasetResponse, MessageRequest, ProjectResponse, ProjectSpec, ProjectStatus, RunPlanResponse, RunResponse, WorkflowEvent, WorkflowResponse
+from .schemas import ApprovalRequest, CreateProjectRequest, DatasetResponse, MessageRequest, PredictionRequest, PredictionResponse, ProjectResponse, ProjectSpec, ProjectStatus, RunPlanResponse, RunResponse, WorkflowEvent, WorkflowResponse
 
 app = FastAPI(title="AutoBuild Backend", version="0.1.0")
 executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="automl")
@@ -38,12 +39,18 @@ def project_response(row) -> ProjectResponse:
 
 def run_response(row) -> RunResponse:
     result = db.load(row["result_json"])
-    artifact_name = Path(result.get("artifact", "")).name if result else ""
-    artifact_available = bool(artifact_name and (ARTIFACT_DIR / artifact_name).is_file())
+    artifact_available = artifact_path_from_run(row) is not None
     return RunResponse(
         id=row["id"], project_id=row["project_id"], status=row["status"], result=result, error=row["error"],
         created_at=row["created_at"], updated_at=row["updated_at"], artifact_available=artifact_available,
     )
+
+
+def artifact_path_from_run(row) -> Path | None:
+    result = db.load(row["result_json"], {}) or {}
+    artifact_name = Path(str(result.get("artifact", ""))).name
+    artifact_path = ARTIFACT_DIR / artifact_name
+    return artifact_path if artifact_name and artifact_path.is_file() else None
 
 
 @app.get("/health")
@@ -200,12 +207,28 @@ def download_artifact(run_id: str):
         raise HTTPException(status_code=404, detail="Run not found")
     if row["status"] != "completed":
         raise HTTPException(status_code=409, detail="A completed training run is required before the model artifact is available")
-    result = db.load(row["result_json"], {})
-    artifact_name = Path(result.get("artifact", "")).name
-    artifact_path = ARTIFACT_DIR / artifact_name
-    if not artifact_name or not artifact_path.is_file():
+    artifact_path = artifact_path_from_run(row)
+    if artifact_path is None:
         raise HTTPException(status_code=404, detail="Model artifact is unavailable")
     return FileResponse(artifact_path, media_type="application/octet-stream", filename=f"{run_id}-model.joblib")
+
+
+@app.post("/runs/{run_id}/predict", response_model=PredictionResponse, dependencies=[Depends(require_api_key)])
+def predict_with_run(run_id: str, payload: PredictionRequest):
+    row = db.fetch_one("SELECT * FROM runs WHERE id = ?", (run_id,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if row["status"] != "completed":
+        raise HTTPException(status_code=409, detail="A completed training run is required before predictions are available")
+    artifact_path = artifact_path_from_run(row)
+    if artifact_path is None:
+        raise HTTPException(status_code=404, detail="Model artifact is unavailable")
+    result = db.load(row["result_json"], {}) or {}
+    try:
+        predictions, probabilities = predict_records(artifact_path, result["features_used"], payload.records)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return PredictionResponse(run_id=run_id, model=result["best_model"], predictions=predictions, probabilities=probabilities)
 
 
 @app.get("/projects/{project_id}/report", dependencies=[Depends(require_api_key)])

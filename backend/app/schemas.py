@@ -89,6 +89,17 @@ class RunPlanResponse(BaseModel):
     dataset: dict[str, Any] | None = None
 
 
+class PredictionRequest(BaseModel):
+    records: list[dict[str, Any]] = Field(min_length=1, max_length=500)
+
+
+class PredictionResponse(BaseModel):
+    run_id: str
+    model: str
+    predictions: list[Any]
+    probabilities: list[dict[str, float]] | None = None
+
+
 class WorkflowStage(BaseModel):
     id: str
     label: str

@@ -177,6 +177,12 @@ Implemented on `codex/data-readiness-hardening`. This phase expands upload profi
 
 Verification result: `6 passed` with the same two non-failing environment warnings.
 
+## Model-inference phase record
+
+Implemented on `codex/model-inference`. This phase adds guarded batch inference for completed models. It validates requested columns against the recorded training features and returns class probabilities when the fitted classifier supports them.
+
+Verification result: `6 passed` with the same two non-failing environment warnings.
+
 ## Model-artifact phase record
 
 Implemented on `codex/model-artifacts`. This phase adds authenticated completed-model download, safe server-side artifact resolution, and a project run-history endpoint for the results screen.

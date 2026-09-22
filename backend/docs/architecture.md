@@ -12,6 +12,8 @@ Dataset profiling is also a hard pre-flight gate. It blocks invalid target types
 
 Completed joblib artifacts remain in the local artifact directory and are served only through a run-specific authenticated endpoint. The service derives the filename from a database result and discards path components before opening it, so request input cannot select arbitrary files.
 
+The same guarded artifact lookup powers batch inference. The prediction endpoint accepts up to 500 tabular records, verifies that every training feature is present, and returns predictions (plus class probabilities when the fitted estimator supports them).
+
 Workflow: `discovery → approval → awaiting_data → upload/profile → data_ready → queued/running → completed|failed`. The LangGraph lifecycle graph turns persisted project state into a current stage, next action, and frontend stage list. The API records immutable workflow events in SQLite, giving the future frontend an auditable user-facing timeline. Every candidate uses a scikit-learn pipeline, ensuring imputation, encoding, and scaling are fit within cross-validation folds.
 
 Before external hosting, replace SQLite and the local executor with PostgreSQL plus isolated queue workers, then add compute controls, scanning, object storage, retention jobs, real identities, and observability.

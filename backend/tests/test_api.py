@@ -38,6 +38,12 @@ def test_classification_workflow():
     artifact = client.get(f"/runs/{run.json()['id']}/artifact", headers=HEADERS)
     assert artifact.status_code == 200
     assert artifact.headers["content-type"] == "application/octet-stream"
+    prediction = client.post(f"/runs/{run.json()['id']}/predict", headers=HEADERS, json={"records": [{"age": 28, "plan": "basic"}, {"age": 54, "plan": "pro"}]})
+    assert prediction.status_code == 200
+    assert len(prediction.json()["predictions"]) == 2
+    assert prediction.json()["probabilities"] is not None
+    invalid_prediction = client.post(f"/runs/{run.json()['id']}/predict", headers=HEADERS, json={"records": [{"age": 28}]})
+    assert invalid_prediction.status_code == 422
 
 
 def test_rejects_unsupported_file():
